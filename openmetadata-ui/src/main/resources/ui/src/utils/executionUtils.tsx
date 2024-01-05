@@ -35,6 +35,7 @@ export interface ViewDataInterface {
   timestamp?: string;
   executionStatus?: StatusType;
   type?: string;
+  key: number;
 }
 
 export const StatusIndicator = ({ status }: StatusIndicatorInterface) => (
@@ -74,6 +75,7 @@ export const getTableViewData = (
         timestamp: formatDateTime(execution.timestamp),
         executionStatus: execute.executionStatus,
         type: '--',
+        key: execution.timestamp,
       });
     });
   });
