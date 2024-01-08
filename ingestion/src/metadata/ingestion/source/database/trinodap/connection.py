@@ -41,6 +41,7 @@ from metadata.ingestion.connections.test_connections import (
 from metadata.ingestion.ometa.ometa_api import OpenMetadata
 from metadata.ingestion.source.database.trino.queries import TRINO_GET_DATABASE
 
+
 def get_connection_url(connection: TrinoDapConnection) -> str:
     """
     Prepare the connection url for trino
@@ -49,8 +50,8 @@ def get_connection_url(connection: TrinoDapConnection) -> str:
     if connection.username:
         url += f"{quote_plus(connection.username)}"
         if (
-                isinstance(connection.authType, basicAuth.BasicAuth)
-                and connection.authType.password
+            isinstance(connection.authType, basicAuth.BasicAuth)
+            and connection.authType.password
         ):
             url += f":{quote_plus(connection.authType.password.get_secret_value())}"
         url += "@"

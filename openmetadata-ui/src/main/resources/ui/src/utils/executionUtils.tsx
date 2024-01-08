@@ -35,7 +35,6 @@ export interface ViewDataInterface {
   timestamp?: string;
   executionStatus?: StatusType;
   type?: string;
-  key: number;
 }
 
 export const StatusIndicator = ({ status }: StatusIndicatorInterface) => (
@@ -59,8 +58,7 @@ export const StatusIndicator = ({ status }: StatusIndicatorInterface) => (
  */
 export const getTableViewData = (
   executions: PipelineStatus[] | undefined,
-  status: string | undefined,
-  searchString: string | undefined
+  status: string | undefined
 ): Array<ViewDataInterface> | undefined => {
   if (isUndefined(executions)) {
     return;
@@ -75,22 +73,15 @@ export const getTableViewData = (
         timestamp: formatDateTime(execution.timestamp),
         executionStatus: execute.executionStatus,
         type: '--',
-        key: execution.timestamp,
       });
     });
   });
 
-  return viewData
-    .filter((view) =>
-      searchString && searchString.length > 0
-        ? toLower(view.name)?.includes(toLower(searchString))
-        : true
-    )
-    .filter((data) =>
-      status !== MenuOptions.all
-        ? toLower(data.status)?.includes(toLower(status))
-        : true
-    );
+  return viewData.filter((data) =>
+    status !== MenuOptions.all
+      ? toLower(data.status)?.includes(toLower(status))
+      : data
+  );
 };
 
 /**
@@ -103,7 +94,7 @@ export const getTreeViewData = (
   executions: PipelineStatus[],
   status: string | undefined
 ) => {
-  const taskStatusArr = getTableViewData(executions, status, undefined);
+  const taskStatusArr = getTableViewData(executions, status);
 
   return groupBy(taskStatusArr, 'name');
 };

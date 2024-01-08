@@ -16,6 +16,7 @@ import { COMMON_UI_SCHEMA } from '../constants/Services.constant';
 import { MetadataServiceType } from '../generated/entity/services/metadataService';
 import amundsenConnection from '../jsons/connectionSchemas/connections/metadata/amundsenConnection.json';
 import atlasConnection from '../jsons/connectionSchemas/connections/metadata/atlasConnection.json';
+
 import openMetadataConnection from '../jsons/connectionSchemas/connections/metadata/openMetadataConnection.json';
 
 export const getMetadataConfig = (type: MetadataServiceType) => {

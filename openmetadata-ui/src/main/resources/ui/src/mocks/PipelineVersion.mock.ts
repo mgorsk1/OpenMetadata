@@ -12,10 +12,7 @@
  */
 
 import { PipelineVersionProp } from '../components/PipelineVersion/PipelineVersion.interface';
-import {
-  PipelineServiceType,
-  StatusType,
-} from '../generated/entity/data/pipeline';
+import { PipelineServiceType } from '../generated/entity/data/pipeline';
 import { ENTITY_PERMISSIONS } from '../mocks/Permissions.mock';
 import {
   mockBackHandler,
@@ -146,104 +143,3 @@ export const mockColumnDiffPipelineVersionMockProps = {
   ...pipelineVersionMockProps,
   currentVersionData: mockColumnDiffPipelineData,
 };
-
-export const EXECUTION_LIST_MOCK = [
-  {
-    timestamp: 1697265270340,
-    executionStatus: StatusType.Pending,
-    taskStatus: [
-      {
-        name: 'dim_address_task',
-        executionStatus: StatusType.Pending,
-      },
-      {
-        name: 'assert_table_exists',
-        executionStatus: StatusType.Pending,
-      },
-    ],
-  },
-  {
-    timestamp: 1697265270200,
-    executionStatus: StatusType.Pending,
-    taskStatus: [
-      {
-        name: 'dim_address_task',
-        executionStatus: StatusType.Failed,
-      },
-      {
-        name: 'assert_table_exists',
-        executionStatus: StatusType.Pending,
-      },
-    ],
-  },
-  {
-    timestamp: 1697265269958,
-    executionStatus: StatusType.Pending,
-    taskStatus: [
-      {
-        name: 'dim_address_task',
-        executionStatus: StatusType.Pending,
-      },
-      {
-        name: 'assert_table_exists',
-        executionStatus: StatusType.Successful,
-      },
-    ],
-  },
-  {
-    timestamp: 1697265269825,
-    executionStatus: StatusType.Failed,
-    taskStatus: [
-      {
-        name: 'dim_address_task',
-        executionStatus: StatusType.Failed,
-      },
-      {
-        name: 'assert_table_exists',
-        executionStatus: StatusType.Successful,
-      },
-    ],
-  },
-  {
-    timestamp: 1697265269683,
-    executionStatus: StatusType.Failed,
-    taskStatus: [
-      {
-        name: 'dim_address_task',
-        executionStatus: StatusType.Successful,
-      },
-      {
-        name: 'assert_table_exists',
-        executionStatus: StatusType.Failed,
-      },
-    ],
-  },
-  {
-    timestamp: 1697265269509,
-    executionStatus: StatusType.Successful,
-    taskStatus: [
-      {
-        name: 'dim_address_task',
-        executionStatus: StatusType.Successful,
-      },
-      {
-        name: 'assert_table_exists',
-        executionStatus: StatusType.Successful,
-      },
-    ],
-  },
-  {
-    timestamp: 1697265269363,
-    executionStatus: StatusType.Failed,
-    taskStatus: [
-      {
-        name: 'dim_address_task',
-        executionStatus: StatusType.Failed,
-      },
-      {
-        name: 'assert_table_exists',
-        executionStatus: StatusType.Failed,
-      },
-    ],
-  },
-];
