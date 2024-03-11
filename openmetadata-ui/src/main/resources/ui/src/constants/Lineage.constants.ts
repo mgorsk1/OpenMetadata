@@ -82,5 +82,6 @@ export const LINEAGE_SOURCE: { [key in Source]: string } = {
   [Source.PipelineLineage]: 'Pipeline Lineage',
   [Source.QueryLineage]: 'Query Lineage',
   [Source.SparkLineage]: 'Spark Lineage',
+  [Source.OpenLineage]: 'OpenLineage',
   [Source.ViewLineage]: 'View Lineage',
 };
