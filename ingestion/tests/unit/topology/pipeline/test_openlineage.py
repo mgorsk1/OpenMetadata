@@ -472,7 +472,7 @@ class OpenLineageUnitTest(unittest.TestCase):
     def test_get_create_table_request_existing_table(self, mock_get_table_fqn):
         mock_get_table_fqn.return_value = "testService.shopify.existing_table"
 
-        # Mock dataset representing a table that already exists in Open Metadata
+        # Mock dataset representing a table that already exists in OpenMetadata
         existing_table = Dataset(
             name="shopify.existing_table",
             namespace="hive://",
@@ -501,10 +501,13 @@ class OpenLineageUnitTest(unittest.TestCase):
         self.assertIsNotNone(result.left)
         self.assertIsInstance(result.left, StackTraceError)
 
+
     @patch(
         "metadata.ingestion.source.pipeline.openlineage.metadata.OpenlineageSource._get_table_fqn_from_om"
     )
     def test_yield_pipeline_lineage_details(self, mock_get_entity):
+        mock_get_create_table_request = MagicMock(wraps=self.open_lineage_source.get_create_table_request)
+        self.open_lineage_source.get_create_table_request = mock_get_create_table_request
         def t_fqn_build_side_effect(
             table_details,
         ):
@@ -578,6 +581,8 @@ class OpenLineageUnitTest(unittest.TestCase):
 
         self.assertEqual(col_lineage, expected_col_lineage)
         self.assertEqual(table_lineage, expected_table_lineage)
+
+        self.assertEqual(mock_get_create_table_request.call_count, 2)
 
 
 if __name__ == "__main__":
