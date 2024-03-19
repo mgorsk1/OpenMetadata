@@ -14,7 +14,9 @@ from metadata.generated.schema.entity.services.connections.pipeline.openLineageC
     ConsumerOffsets,
     SecurityProtocol,
 )
-from metadata.generated.schema.entity.services.ingestionPipelines.status import StackTraceError
+from metadata.generated.schema.entity.services.ingestionPipelines.status import (
+    StackTraceError,
+)
 from metadata.generated.schema.entity.services.pipelineService import (
     PipelineConnection,
     PipelineService,
@@ -29,7 +31,8 @@ from metadata.generated.schema.type.entityReference import EntityReference
 from metadata.ingestion.source.pipeline.openlineage.metadata import OpenlineageSource
 from metadata.ingestion.source.pipeline.openlineage.models import Dataset, RunEvent
 from metadata.ingestion.source.pipeline.openlineage.utils import (
-    message_to_open_lineage_event, FQNNotFoundException,
+    FQNNotFoundException,
+    message_to_open_lineage_event,
 )
 
 # Global constants
@@ -65,9 +68,8 @@ MOCK_OL_CONFIG = {
         }
     },
 }
-MOCK_SPLINE_UI_URL = "http://localhost:9090"
 PIPELINE_ID = "3f784e72-5bf7-5704-8828-ae8464fe915b:lhq160w0"
-MOCK_PIPELINE_URL = f"{MOCK_SPLINE_UI_URL}/app/events/overview/{PIPELINE_ID}"
+MOCK_PIPELINE_URL = f"http://localhost:9090/app/events/overview/{PIPELINE_ID}"
 MOCK_PIPELINE_SERVICE = PipelineService(
     id="85811038-099a-11ed-861d-0242ac120002",
     name="openlineage_source",
@@ -500,89 +502,63 @@ class OpenLineageUnitTest(unittest.TestCase):
 
         self.assertIsNotNone(result.left)
         self.assertIsInstance(result.left, StackTraceError)
+    @staticmethod
+    def extract_lineage_details(pipeline_details):
+        table_lineage = []
+        col_lineage = []
+        for r in pipeline_details:
+            table_lineage.append(
+                (
+                    r.right.edge.fromEntity.id.__root__,
+                    r.right.edge.toEntity.id.__root__,
+                )
+            )
+            for col in r.right.edge.lineageDetails.columnsLineage:
+                col_lineage.append(
+                    (col.fromColumns[0].__root__, col.toColumn.__root__)
+                )
+        return table_lineage, col_lineage
 
+    @staticmethod
+    def mock_get_uuid_by_name(entity, fqn):
+        uuid_map = {
+            "testService.shopify.raw_product_catalog": "69fc8906-4a4a-45ab-9a54-9cc2d399e10e",
+            "testService.shopify.fact_order_new5": "59fc8906-4a4a-45ab-9a54-9cc2d399e10e",
+        }
+        pipeline_uuid = "79fc8906-4a4a-45ab-9a54-9cc2d399e10e"
 
-    @patch(
-        "metadata.ingestion.source.pipeline.openlineage.metadata.OpenlineageSource._get_table_fqn_from_om"
-    )
-    def test_yield_pipeline_lineage_details(self, mock_get_entity):
+        uuid = uuid_map.get(fqn, None)
+        mock_object = Mock()
+        if uuid is None:
+            mock_object.id.__root__ = pipeline_uuid
+        else:
+            mock_object.id = uuid
+        return mock_object
+
+    @patch.object(OpenMetadataConnection, "get_by_name", create=True)
+    @patch("metadata.ingestion.source.pipeline.openlineage.metadata.OpenlineageSource._get_table_fqn_from_om")
+    def test_yield_pipeline_lineage_details(self, mock_get_table_fqn, mock_get_by_name):
+        # directly set the side effects for mocks
+        mock_get_by_name.side_effect = self.mock_get_uuid_by_name
+        mock_get_table_fqn.side_effect = lambda details: f"testService.shopify.{details.name}"
         mock_get_create_table_request = MagicMock(wraps=self.open_lineage_source.get_create_table_request)
         self.open_lineage_source.get_create_table_request = mock_get_create_table_request
-        def t_fqn_build_side_effect(
-            table_details,
-        ):
-            return f"testService.shopify.{table_details.name}"
-
-        def mock_get_uuid_by_name(entity, fqn):
-            if fqn == "testService.shopify.raw_product_catalog":
-                # source of table lineage
-                return Mock(id="69fc8906-4a4a-45ab-9a54-9cc2d399e10e")
-            elif fqn == "testService.shopify.fact_order_new5":
-                # dst of table lineage
-                return Mock(id="59fc8906-4a4a-45ab-9a54-9cc2d399e10e")
-            else:
-                # pipeline
-                z = Mock()
-                z.id.__root__ = "79fc8906-4a4a-45ab-9a54-9cc2d399e10e"
-                return z
-
-        def extract_lineage_details(pip_results):
-            table_lineage = []
-            col_lineage = []
-            for r in pip_results:
-                table_lineage.append(
-                    (
-                        r.right.edge.fromEntity.id.__root__,
-                        r.right.edge.toEntity.id.__root__,
-                    )
-                )
-                for col in r.right.edge.lineageDetails.columnsLineage:
-                    col_lineage.append(
-                        (col.fromColumns[0].__root__, col.toColumn.__root__)
-                    )
-            return table_lineage, col_lineage
-
-        # Set up the side effect for the mock entity FQN builder
-        mock_get_entity.side_effect = t_fqn_build_side_effect
 
         ol_event = self.read_openlineage_event_from_kafka(FULL_OL_KAFKA_EVENT)
+        pipeline_details = self.open_lineage_source.yield_pipeline_lineage_details(ol_event)
+        table_lineage, col_lineage = self.extract_lineage_details(pipeline_details)
 
-        with patch.object(
-            OpenMetadataConnection,
-            "get_by_name",
-            create=True,
-            side_effect=mock_get_uuid_by_name,
-        ):
-            pip_results = self.open_lineage_source.yield_pipeline_lineage_details(
-                ol_event
-            )
-            table_lineage, col_lineage = extract_lineage_details(pip_results)
-
-        expected_table_lineage = [
-            (
-                UUID("69fc8906-4a4a-45ab-9a54-9cc2d399e10e"),
-                UUID("59fc8906-4a4a-45ab-9a54-9cc2d399e10e"),
-            )
-        ]
+        expected_table_lineage = [(UUID("69fc8906-4a4a-45ab-9a54-9cc2d399e10e"), UUID("59fc8906-4a4a-45ab-9a54-9cc2d399e10e"))]
         expected_col_lineage = [
-            (
-                "testService.shopify.raw_product_catalog.comments",
-                "testService.shopify.fact_order_new5.id",
-            ),
-            (
-                "testService.shopify.raw_product_catalog.products",
-                "testService.shopify.fact_order_new5.randomid",
-            ),
-            (
-                "testService.shopify.raw_product_catalog.platform",
-                "testService.shopify.fact_order_new5.zip",
-            ),
+            ("testService.shopify.raw_product_catalog.comments", "testService.shopify.fact_order_new5.id"),
+            ("testService.shopify.raw_product_catalog.products", "testService.shopify.fact_order_new5.randomid"),
+            ("testService.shopify.raw_product_catalog.platform", "testService.shopify.fact_order_new5.zip"),
         ]
 
-        self.assertEqual(col_lineage, expected_col_lineage)
         self.assertEqual(table_lineage, expected_table_lineage)
-
-        self.assertEqual(mock_get_create_table_request.call_count, 2)
+        self.assertEqual(col_lineage, expected_col_lineage)
+        # this ensures the `get_create_table_request` is called as expected
+        self.assertEqual(self.open_lineage_source.get_create_table_request.call_count, 2)
 
 
 if __name__ == "__main__":
