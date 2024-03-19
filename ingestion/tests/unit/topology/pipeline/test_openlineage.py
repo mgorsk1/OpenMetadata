@@ -447,9 +447,15 @@ class OpenLineageUnitTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             RunEvent(**{})
 
-    @patch("metadata.ingestion.source.pipeline.openlineage.metadata.OpenlineageSource._get_table_fqn_from_om")
-    @patch("metadata.ingestion.source.pipeline.openlineage.metadata.OpenlineageSource._get_schema_fqn_from_om")
-    def test_get_create_table_request_non_existing_table(self, mock_get_schema_fqn, mock_get_table_fqn):
+    @patch(
+        "metadata.ingestion.source.pipeline.openlineage.metadata.OpenlineageSource._get_table_fqn_from_om"
+    )
+    @patch(
+        "metadata.ingestion.source.pipeline.openlineage.metadata.OpenlineageSource._get_schema_fqn_from_om"
+    )
+    def test_get_create_table_request_non_existing_table(
+        self, mock_get_schema_fqn, mock_get_table_fqn
+    ):
         mock_get_table_fqn.side_effect = FQNNotFoundException("Table FQN not found")
         mock_get_schema_fqn.return_value = "testService.shopify.schema"
 
@@ -457,7 +463,7 @@ class OpenLineageUnitTest(unittest.TestCase):
         non_existing_table = Dataset(
             name="shopify.non_existing_table",
             namespace="hive://",
-            facets={"schema": {"fields": [{"name": "id", "type": "INT"}]}}
+            facets={"schema": {"fields": [{"name": "id", "type": "INT"}]}},
         )
 
         result = self.open_lineage_source.get_create_table_request(non_existing_table)
@@ -468,40 +474,45 @@ class OpenLineageUnitTest(unittest.TestCase):
         self.assertEqual(len(result.right.columns), 1)
         self.assertEqual(result.right.columns[0].name.__root__, "id")
         self.assertEqual(result.right.columns[0].dataType.value, "INT")
-        self.assertEqual(result.right.databaseSchema.__root__, "testService.shopify.schema")
+        self.assertEqual(
+            result.right.databaseSchema.__root__, "testService.shopify.schema"
+        )
 
-    @patch("metadata.ingestion.source.pipeline.openlineage.metadata.OpenlineageSource._get_table_fqn_from_om")
+    @patch(
+        "metadata.ingestion.source.pipeline.openlineage.metadata.OpenlineageSource._get_table_fqn_from_om"
+    )
     def test_get_create_table_request_existing_table(self, mock_get_table_fqn):
         mock_get_table_fqn.return_value = "testService.shopify.existing_table"
 
         # Mock dataset representing a table that already exists in OpenMetadata
         existing_table = Dataset(
-            name="shopify.existing_table",
-            namespace="hive://",
-            facets={}
+            name="shopify.existing_table", namespace="hive://", facets={}
         )
 
         result = self.open_lineage_source.get_create_table_request(existing_table)
 
         self.assertIsNone(result)
 
-    @patch("metadata.ingestion.source.pipeline.openlineage.metadata.OpenlineageSource._get_table_fqn_from_om")
-    @patch("metadata.ingestion.source.pipeline.openlineage.metadata.OpenlineageSource._get_schema_fqn_from_om")
-    def test_get_create_table_request_invalid_table(self, mock_get_schema_fqn, mock_get_table_fqn):
+    @patch(
+        "metadata.ingestion.source.pipeline.openlineage.metadata.OpenlineageSource._get_table_fqn_from_om"
+    )
+    @patch(
+        "metadata.ingestion.source.pipeline.openlineage.metadata.OpenlineageSource._get_schema_fqn_from_om"
+    )
+    def test_get_create_table_request_invalid_table(
+        self, mock_get_schema_fqn, mock_get_table_fqn
+    ):
         mock_get_table_fqn.side_effect = FQNNotFoundException("Table FQN not found")
         mock_get_schema_fqn.side_effect = FQNNotFoundException("Schema FQN not found")
 
         # Mock dataset representing a table with invalid schema/name
-        invalid_table = Dataset(
-            name="invalid_table",
-            namespace="hive://",
-            facets={}
-        )
+        invalid_table = Dataset(name="invalid_table", namespace="hive://", facets={})
 
         result = self.open_lineage_source.get_create_table_request(invalid_table)
 
         self.assertIsNotNone(result.left)
         self.assertIsInstance(result.left, StackTraceError)
+
     @staticmethod
     def extract_lineage_details(pipeline_details):
         table_lineage = []
@@ -514,9 +525,7 @@ class OpenLineageUnitTest(unittest.TestCase):
                 )
             )
             for col in r.right.edge.lineageDetails.columnsLineage:
-                col_lineage.append(
-                    (col.fromColumns[0].__root__, col.toColumn.__root__)
-                )
+                col_lineage.append((col.fromColumns[0].__root__, col.toColumn.__root__))
         return table_lineage, col_lineage
 
     @staticmethod
@@ -536,29 +545,55 @@ class OpenLineageUnitTest(unittest.TestCase):
         return mock_object
 
     @patch.object(OpenMetadataConnection, "get_by_name", create=True)
-    @patch("metadata.ingestion.source.pipeline.openlineage.metadata.OpenlineageSource._get_table_fqn_from_om")
+    @patch(
+        "metadata.ingestion.source.pipeline.openlineage.metadata.OpenlineageSource._get_table_fqn_from_om"
+    )
     def test_yield_pipeline_lineage_details(self, mock_get_table_fqn, mock_get_by_name):
         # directly set the side effects for mocks
         mock_get_by_name.side_effect = self.mock_get_uuid_by_name
-        mock_get_table_fqn.side_effect = lambda details: f"testService.shopify.{details.name}"
-        mock_get_create_table_request = MagicMock(wraps=self.open_lineage_source.get_create_table_request)
-        self.open_lineage_source.get_create_table_request = mock_get_create_table_request
+        mock_get_table_fqn.side_effect = (
+            lambda details: f"testService.shopify.{details.name}"
+        )
+        mock_get_create_table_request = MagicMock(
+            wraps=self.open_lineage_source.get_create_table_request
+        )
+        self.open_lineage_source.get_create_table_request = (
+            mock_get_create_table_request
+        )
 
         ol_event = self.read_openlineage_event_from_kafka(FULL_OL_KAFKA_EVENT)
-        pipeline_details = self.open_lineage_source.yield_pipeline_lineage_details(ol_event)
+        pipeline_details = self.open_lineage_source.yield_pipeline_lineage_details(
+            ol_event
+        )
         table_lineage, col_lineage = self.extract_lineage_details(pipeline_details)
 
-        expected_table_lineage = [(UUID("69fc8906-4a4a-45ab-9a54-9cc2d399e10e"), UUID("59fc8906-4a4a-45ab-9a54-9cc2d399e10e"))]
+        expected_table_lineage = [
+            (
+                UUID("69fc8906-4a4a-45ab-9a54-9cc2d399e10e"),
+                UUID("59fc8906-4a4a-45ab-9a54-9cc2d399e10e"),
+            )
+        ]
         expected_col_lineage = [
-            ("testService.shopify.raw_product_catalog.comments", "testService.shopify.fact_order_new5.id"),
-            ("testService.shopify.raw_product_catalog.products", "testService.shopify.fact_order_new5.randomid"),
-            ("testService.shopify.raw_product_catalog.platform", "testService.shopify.fact_order_new5.zip"),
+            (
+                "testService.shopify.raw_product_catalog.comments",
+                "testService.shopify.fact_order_new5.id",
+            ),
+            (
+                "testService.shopify.raw_product_catalog.products",
+                "testService.shopify.fact_order_new5.randomid",
+            ),
+            (
+                "testService.shopify.raw_product_catalog.platform",
+                "testService.shopify.fact_order_new5.zip",
+            ),
         ]
 
         self.assertEqual(table_lineage, expected_table_lineage)
         self.assertEqual(col_lineage, expected_col_lineage)
-        # this ensures the `get_create_table_request` is called as expected
-        self.assertEqual(self.open_lineage_source.get_create_table_request.call_count, 2)
+        # this ensures the get_create_table_request is called as expected
+        self.assertEqual(
+            self.open_lineage_source.get_create_table_request.call_count, 2
+        )
 
 
 if __name__ == "__main__":
