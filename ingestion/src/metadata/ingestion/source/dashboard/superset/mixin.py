@@ -41,6 +41,7 @@ from metadata.generated.schema.type.entityLineage import ColumnLineage
 from metadata.generated.schema.type.entityReferenceList import EntityReferenceList
 from metadata.ingestion.api.models import Either
 from metadata.ingestion.api.steps import InvalidSourceException
+from metadata.ingestion.lineage.masker import mask_query
 from metadata.ingestion.lineage.parser import LineageParser
 from metadata.ingestion.lineage.sql_lineage import (
     get_column_fqn,
@@ -335,10 +336,18 @@ class SupersetSourceMixin(DashboardServiceSource):
                         for input_table in input_tables:
                             from_entity_table, column_lineage = input_table
 
+                            sql = None
+                            if chart_json.sql:
+                                try:
+                                    sql = mask_query(chart_json.sql)
+                                except Exception:
+                                    pass
+
                             yield self._get_add_lineage_request(
                                 to_entity=to_entity,
                                 from_entity=from_entity_table,
                                 column_lineage=column_lineage,
+                                sql=sql,
                             )
                 except Exception as exc:
                     yield Either(
