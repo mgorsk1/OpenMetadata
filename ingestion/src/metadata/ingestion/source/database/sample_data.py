@@ -1445,14 +1445,21 @@ class SampleDataSource(
 
         try:
             for user in self.users["users"]:
+                _user_teams = user["teams"]
+                user_teams = (
+                    [_user_teams] if isinstance(_user_teams, str) else _user_teams
+                )
+
                 teams = [
                     CreateTeamRequest(
-                        name=user["teams"],
-                        displayName=user["teams"],
-                        description=f"This is {user['teams']} description.",
+                        name=user_team,
+                        displayName=user_team,
+                        description=f"This is {user_team} description.",
                         teamType=user["teamType"],
                     )
+                    for user_team in user_teams
                 ]
+
                 if not self.list_policies:
                     self.list_policies = self.metadata.list_entities(entity=Policy)
                     role_name = self.list_policies.entities[0].name
